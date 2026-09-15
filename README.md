@@ -1,146 +1,88 @@
-# how-to-animate-items-in-.net-maui-listview
+# How to animate the items appearing in .NET MAUI ListView (SfListView)?
 
-This repository contains a sample demonstrating how to animate items in .NET MAUI ListView (SfListView).
+The [.NET MAUI ListView ](https://www.syncfusion.com/maui-controls/maui-listView) allows you to animate items as they come into view by overriding the [OnItemAppearing](https://help.syncfusion.com/cr/maui/Syncfusion.Maui.ListView.ListViewItem.html#Syncfusion_Maui_ListView_ListViewItem_OnItemAppearing) method of [ListViewItem](https://help.syncfusion.com/cr/maui/Syncfusion.Maui.ListView.ListViewItem.html). This method is raised when an item appears in the view, allowing for animation customization.
 
-## Sample
+This can be achieved by extending the [ItemsGenerator](https://help.syncfusion.com/cr/maui/Syncfusion.Maui.ListView.ItemsGenerator.html) class, applying animation for the listview items using the OnItemAppearing method and aborting animation for the collapsed item using the PropertyChanged event.
 
-```xaml
-<ContentPage.Behaviors>
-    <local:Behaviours />
-</ContentPage.Behaviors>
-
-<SearchBar
-    x:Name="filterText"
-    Grid.Row="0"
-    HeightRequest="50"
-    Placeholder="Search here to filter" />
-
-<listView:SfListView
-    x:Name="listView"
-    Grid.Row="1"
-    AllowGroupExpandCollapse="True"
-    ItemSize="60"
-    ItemsSource="{Binding CustomerDetails}">
-
-    <listView:SfListView.ItemTemplate>
-        <DataTemplate>
-            <Grid x:Name="grid">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="1" />
-                </Grid.RowDefinitions>
-
-                <Grid
-                    Grid.Column="0"
-                    Padding="0,5,0,0"
-                    RowSpacing="1"
-                    VerticalOptions="Start">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <Label
-                        Grid.Row="0"
-                        Grid.Column="0"
-                        FontAttributes="Bold"
-                        FontSize="18"
-                        LineBreakMode="NoWrap"
-                        Text="{Binding ContactName}"
-                        TextColor="Teal"
-                        VerticalOptions="Start" />
-                    <Label
-                        Grid.Row="1"
-                        Grid.Column="0"
-                        FontSize="12"
-                        LineBreakMode="NoWrap"
-                        Text="{Binding ContactNumber}"
-                        TextColor="Teal" />
-                    <Label
-                        Grid.Row="0"
-                        Grid.Column="1"
-                        Margin="5"
-                        Padding="0,0,10,0"
-                        FontSize="10"
-                        LineBreakMode="NoWrap"
-                        Text="{Binding ContactType}"
-                        TextColor="Teal"
-                        VerticalOptions="End"
-                        VerticalTextAlignment="End" />
-                </Grid>
-                <StackLayout
-                    Grid.Row="1"
-                    BackgroundColor="Gray"
-                    HeightRequest="1" />
-            </Grid>
-        </DataTemplate>
-    </listView:SfListView.ItemTemplate>
-</listView:SfListView>
 ```
-
-```c#
-private bool FilterContacts(object obj)
+public class Behaviours: Behavior<SfListView>
 {
-    if (searchBar == null || searchBar.Text == null)
-        return true;
+   private SfListView listView;
 
-    var contacts = obj as Contacts;
-    if (contacts.ContactName.ToLower().Contains(searchBar.Text.ToLower())
-        || contacts.ContactName.ToLower().Contains(searchBar.Text.ToLower()))
-        return true;
-    else
-        return false;
+   protected override void OnAttachedTo(BindableObject bindable)
+   {
+
+      listView = bindable as SfListView;
+
+      listView.ItemsGenerator = new ItemGeneratorExt(listView);
+
+      base.OnAttachedTo(bindable);
+   }
 }
+```
+ 
 
-private void SearchBar_TextChanged(object sender, TextChangedEventArgs e)
+Extending the ItemsGenerator class:
+
+```
+public class ItemGeneratorExt: ItemsGenerator
 {
-    searchBar = (sender as SearchBar);
-    if (listView.DataSource != null)
-    {
-        this.listView.DataSource.Filter = FilterContacts;
-        this.listView.DataSource.RefreshFilter();
-    }
-}
+   public SfListView ListView { get; set; }
 
-public class ItemGeneratorExt : ItemsGenerator
-{        
-    public ItemGeneratorExt(SfListView listview) : base(listview)
-    {
+   public ItemGeneratorExt(SfListView listview): base(listview)
+   {
+      ListView = listview;
+   }
+
+   protected override ListViewItem OnCreateListViewItem(int itemIndex, ItemType type, object data = null)
+   {
+
+      if (type == ItemType.Record)
+
+         return new ListViewItemExt(ListView);
+
+      return base.OnCreateListViewItem(itemIndex, type, data);
+   }
+}
+```
+ 
+
+Customize ListViewItem to apply animations when an item appears.
+
+```
+public class ListViewItemExt: ListViewItem
+{
+
+   private SfListView _listView;
+
         
-    }
-    protected override ListViewItem OnCreateListViewItem(int itemIndex, ItemType type, object data = null)
-    {
-        if (type == ItemType.Record)
-            return new ListViewItemExt();
-        return base.OnCreateListViewItem(itemIndex, type, data);
-    }
-}
-public class ListViewItemExt : ListViewItem
-{        
-    public ListViewItemExt()
-    {            
-    }
-    protected override void OnItemAppearing()
-    {
-        this.Opacity = 0;
-        this.FadeTo(1, 400, Easing.SinInOut);
-        base.OnItemAppearing();
-    }       
+
+   public ListViewItemExt(SfListView listView)
+   {
+
+      _listView = listView;
+   }
+
+   protected override void OnItemAppearing()
+   {
+
+      this.Opacity = 0;
+
+      this.FadeTo(1, 400, Easing.SinInOut);              
+
+      base.OnItemAppearing();
+   }
+
 }
 ```
 
-## Requirements to run the demo
 
-* [Visual Studio 2017](https://visualstudio.microsoft.com/downloads/) or [Visual Studio for Mac](https://visualstudio.microsoft.com/vs/mac/)
-* Xamarin add-ons for Visual Studio (available via the Visual Studio installer).
+**Conclusion:**
 
-## Troubleshooting
+I hope you enjoyed learning how to animate items in .NET MAUI ListView.
 
-### Path too long exception
+You can refer to our [.NET MAUI ListView feature tour](https://www.syncfusion.com/maui-controls/maui-listView) page to know about its other groundbreaking feature representations and [documentation](https://help.syncfusion.com/maui/listview/getting-started), and how to quickly get started with configuration specifications. 
 
-If you are facing path too long exception when building this example project, close Visual Studio and rename the repository to short and build the project.
+Check out our components from the [License and Downloads](https://www.syncfusion.com/sales/teamlicense) page for current customers. If you are new to Syncfusion®, try our 30-day [free trial](https://www.syncfusion.com/downloads/maui) to check out our other controls.
+
+Please let us know in the comments section if you have any queries or require clarification. You can also contact us through our [support forums](https://www.syncfusion.com/forums/), [Direct-Trac](https://support.syncfusion.com/create), or [feedback portal](https://www.syncfusion.com/feedback/maui?control=sflistview). We are always happy to assist you!
